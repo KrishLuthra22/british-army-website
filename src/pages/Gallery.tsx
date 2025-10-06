@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
-// Import all images from assets/Images
+// Import all images from public/Images
 const imageModules = import.meta.glob(
-  "/src/assets/Images/*.{jpg,jpeg,png,JPG}",
+  "/Images/*.{jpg,jpeg,png,JPG}",
   { eager: true, as: "url" }
 );
 

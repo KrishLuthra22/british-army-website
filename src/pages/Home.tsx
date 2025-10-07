@@ -83,7 +83,7 @@ const Home = () => {
       <div
         className="relative py-40 px-4 sm:px-6 lg:px-8 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(src/assets/Images/DSC_0220-r.jpg)`,
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(src/assets/Images/dsc_0220-r.jpg)`,
         }}
       >
         <div className="relative mx-auto max-w-7xl text-center">

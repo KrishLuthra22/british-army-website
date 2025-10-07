@@ -21,6 +21,9 @@ import {
 import BAOC_logo from "@/assets/BAOC_logo.png";
 import Carousel from "react-material-ui-carousel";
 import instructorTeachingImage from "@/assets/Images/DSC_0214-r.jpg";
+import DSC_0245_r from "@/assets/Images/DSC_0245-r.jpg";
+import DSC_0203_r from "@/assets/Images/DSC_0203-r.jpg";
+import DSC_0216_r from "@/assets/Images/DSC_0216-r.jpg";
 
 // Import all images from assets/Images
 const imageModules = import.meta.glob(
@@ -44,14 +47,14 @@ const Home = () => {
       description:
         "Upcoming orienteering events, competitions, and training courses",
       link: "/calendar",
-      image: "src/assets/Images/DSC_0256-r.jpg",
+      image: instructorTeachingImage,
     },
     {
       icon: Trophy,
       title: "Results",
       description: "Historical results from competitions and championships",
       link: "/results",
-      image: "src/assets/Images/DSC_0245-r.jpg",
+      image: DSC_0245_r,
     },
     {
       icon: Users,
@@ -59,7 +62,7 @@ const Home = () => {
       description:
         "Join the British Army Orienteering Club and compete as part of the team",
       link: "/baoc",
-      image: "src/assets/Images/DSC_0203-r.jpg",
+      image: DSC_0203_r,
     },
     {
       icon: Shield,
@@ -67,7 +70,7 @@ const Home = () => {
       description:
         "Official Army Orienteering Association structure and training",
       link: "/aoa",
-      image: "src/assets/Images/DSC_0216-r.jpg",
+      image: DSC_0216_r,
     },
   ];
 
@@ -216,7 +219,12 @@ const Home = () => {
                 key={index}
                 className="group hover:shadow-military transition-all duration-300 shadow-card-custom overflow-hidden"
               >
-                <div className="aspect-w-16 aspect-h-9 relative h-48 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${feature.image})` }}>
+                <div
+                  className="aspect-w-16 aspect-h-9 relative h-48 bg-cover bg-center bg-no-repeat"
+                  style={{
+                    backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${feature.image})`,
+                  }}
+                >
                   <div className="absolute bottom-4 left-4">
                     <feature.icon className="h-8 w-8 text-white mb-2" />
                   </div>

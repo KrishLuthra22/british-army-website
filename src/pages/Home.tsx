@@ -216,13 +216,7 @@ const Home = () => {
                 key={index}
                 className="group hover:shadow-military transition-all duration-300 shadow-card-custom overflow-hidden"
               >
-                <div className="aspect-w-16 aspect-h-9 relative h-48">
-                  <img
-                    src={feature.image}
-                    alt={feature.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="aspect-w-16 aspect-h-9 relative h-48 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${feature.image})` }}>
                   <div className="absolute bottom-4 left-4">
                     <feature.icon className="h-8 w-8 text-white mb-2" />
                   </div>

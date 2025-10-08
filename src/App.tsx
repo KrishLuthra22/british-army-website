@@ -17,6 +17,7 @@ import News from "./pages/News";
 import Gallery from "./pages/Gallery";
 
 import AdminLogin from "./pages/AdminLogin";
+import SignUp from "./pages/SignUp";
 import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
                 <Route path="/aoa" element={<AOA />} />
                 <Route path="/news" element={<News />} />
                 <Route path="/admin" element={<AdminLogin />} />
+                <Route path="/signup" element={<SignUp />} />
                 <Route path="/gallery" element={<Gallery />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

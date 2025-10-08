@@ -115,7 +115,7 @@ const Home = () => {
             </Button>
             <Button asChild variant="hero" size="lg">
               <Link to="/results">
-                <Users className="mr-2 h-5 w-5" />
+                <Users className="mr-2 h-5 w-5" />  
                 View Results
               </Link>
             </Button>

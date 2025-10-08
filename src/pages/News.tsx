@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { FaEdit, FaTrash } from "react-icons/fa";
 import BAOC_vertical_logo from "@/assets/BAOC_vertical_logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -19,9 +20,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import {
+  getCollectionData,
+  addDocument,
+  updateDocument,
+  deleteDocument,
+} from "@/Firebase";
 
 interface NewsItem {
-  id: number;
+  id: string;
   title: string;
   description: string;
   type: "urgent" | "routine" | "british-orienteering";
@@ -31,104 +38,16 @@ interface NewsItem {
   category?: string;
 }
 
-const newsData: NewsItem[] = [
-  // Urgent News
-  {
-    id: 1,
-    title: "Event Cancellation: Tomorrow's Central League",
-    description:
-      "Due to severe weather warnings, tomorrow's Central League event at Salisbury Plain has been cancelled. All entries will be automatically transferred to the rescheduled date.",
-    type: "urgent",
-    date: "2024-01-15",
-    expiryDate: "2024-01-16",
-    priority: 1,
-    category: "Cancellation",
-  },
-  {
-    id: 2,
-    title: "Road Closure: Access Route A",
-    description:
-      "Major roadworks on Access Route A will affect travel to the Northern League event. Please use alternative routes and allow extra journey time.",
-    type: "urgent",
-    date: "2024-01-14",
-    expiryDate: "2024-01-20",
-    priority: 2,
-    category: "Travel Alert",
-  },
-  {
-    id: 3,
-    title: "Venue Change: Scotland League Event",
-    description:
-      "This weekend's Scotland League event has moved to alternative venue due to forestry work. New location details available online.",
-    type: "urgent",
-    date: "2024-01-13",
-    expiryDate: "2024-01-17",
-    priority: 1,
-    category: "Venue Change",
-  },
-
-  // Routine News
-  {
-    id: 4,
-    title: "2024 Inter-Services Championship Details",
-    description:
-      "Advanced information and preliminary courses for the upcoming Inter-Services Championship are now available. Registration opens next week.",
-    type: "routine",
-    date: "2024-01-12",
-    priority: 1,
-    category: "Championship",
-  },
-  {
-    id: 5,
-    title: "Military Success at National Championships",
-    description:
-      "Congratulations to Capt. Sarah Jenkins on her gold medal performance at the UK National Orienteering Championships last weekend.",
-    type: "routine",
-    date: "2024-01-10",
-    priority: 2,
-    category: "Achievement",
-  },
-  {
-    id: 6,
-    title: "Winter Training Schedule Released",
-    description:
-      "New winter training sessions now available across all regions. Focus on navigation skills and night orienteering techniques.",
-    type: "routine",
-    date: "2024-01-08",
-    priority: 3,
-    category: "Training",
-  },
-
-  // British Orienteering News
-  {
-    id: 7,
-    title: "British Orienteering: New Coaching Framework",
-    description:
-      "Updated coaching qualifications and development pathways announced for 2024 season.",
-    type: "british-orienteering",
-    date: "2024-01-13",
-    priority: 1,
-    category: "Coaching",
-  },
-  {
-    id: 8,
-    title: "National Event Calendar Update",
-    description:
-      "Major national events schedule revised with new venues and dates confirmed.",
-    type: "british-orienteering",
-    date: "2024-01-09",
-    priority: 2,
-    category: "Events",
-  },
-];
-
 const News: React.FC = () => {
   const { isLoggedIn } = useAuth();
   const [activeFilter, setActiveFilter] = useState<
     "all" | "urgent" | "routine" | "british-orienteering"
   >("all");
   const [showAddForm, setShowAddForm] = useState(false);
-  const [dynamicNews, setDynamicNews] = useState<NewsItem[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<NewsItem | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -140,13 +59,23 @@ const News: React.FC = () => {
   });
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('news');
-    if (stored) {
-      setDynamicNews(JSON.parse(stored));
-    }
+    fetchNews();
   }, []);
 
-  const allNews = [...newsData, ...dynamicNews];
+  const fetchNews = async () => {
+    try {
+      setLoading(true);
+      const data = await getCollectionData("news");
+      setNews(data);
+    } catch (err) {
+      setError("Failed to load news");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const allNews = news;
   const filteredNews = allNews.filter((item) => {
     if (activeFilter === "all") return true;
     return item.type === activeFilter;
@@ -160,25 +89,69 @@ const News: React.FC = () => {
     setShowAddForm(true);
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newItem: NewsItem = {
-      id: Date.now(),
-      ...formData,
-    };
-    const updatedNews = [...dynamicNews, newItem];
-    setDynamicNews(updatedNews);
-    sessionStorage.setItem('news', JSON.stringify(updatedNews));
+    try {
+      if (editingItem) {
+        await updateDocument("news", editingItem.id, formData);
+        setNews(
+          news.map((item) =>
+            item.id === editingItem.id ? { ...item, ...formData } : item
+          )
+        );
+      } else {
+        await addDocument("news", formData);
+        await fetchNews(); // Refresh the list
+      }
+      setFormData({
+        title: "",
+        description: "",
+        type: "routine",
+        date: "",
+        expiryDate: "",
+        priority: 1,
+        category: "",
+      });
+      setShowAddForm(false);
+      setEditingItem(null);
+    } catch (err) {
+      console.error("Error saving news:", err);
+      alert("Failed to save news");
+    }
+  };
+
+  const handleEdit = (item: NewsItem) => {
+    if (!isLoggedIn) {
+      alert("Please login");
+      return;
+    }
+    setEditingItem(item);
     setFormData({
-      title: "",
-      description: "",
-      type: "routine",
-      date: "",
-      expiryDate: "",
-      priority: 1,
-      category: "",
+      title: item.title,
+      description: item.description,
+      type: item.type,
+      date: item.date,
+      expiryDate: item.expiryDate || "",
+      priority: item.priority,
+      category: item.category || "",
     });
-    setShowAddForm(false);
+    setShowAddForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!isLoggedIn) {
+      alert("Please login");
+      return;
+    }
+    if (window.confirm("Are you sure you want to delete this news item?")) {
+      try {
+        await deleteDocument("news", id);
+        setNews(news.filter((item) => item.id !== id));
+      } catch (err) {
+        console.error("Error deleting news:", err);
+        alert("Failed to delete news");
+      }
+    }
   };
 
   // Military-inspired color scheme based on the screenshot
@@ -256,7 +229,7 @@ const News: React.FC = () => {
 
       {/* Filter Buttons */}
       <div className="flex flex-wrap justify-center gap-3 mb-12 max-w-4xl mx-auto">
-        {([
+        {[
           { key: "all" as const, label: "All News", count: allNews.length },
           {
             key: "urgent" as const,
@@ -274,7 +247,7 @@ const News: React.FC = () => {
             count: allNews.filter((n) => n.type === "british-orienteering")
               .length,
           },
-        ]).map((filter) => (
+        ].map((filter) => (
           <button
             key={filter.key}
             onClick={() => setActiveFilter(filter.key)}
@@ -303,75 +276,147 @@ const News: React.FC = () => {
         ))}
       </div>
 
+      {/* Loading */}
+      {loading && (
+        <div className="text-center py-16">
+          <div className="text-gray-400 text-2xl mb-4">⏳</div>
+          <h3 className="text-xl font-semibold text-gray-600 mb-3">
+            Loading News...
+          </h3>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="text-center py-16">
+          <div className="text-red-400 text-2xl mb-4">❌</div>
+          <h3 className="text-xl font-semibold text-red-600 mb-3">
+            Error Loading News
+          </h3>
+          <p className="text-gray-500">{error}</p>
+        </div>
+      )}
+
       {/* News Grid */}
-      <div className="max-w-7xl mx-auto rounded-xl grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredNews.map((item) => (
-          <div
-            key={item.id}
-            className={`
-           rounded-lg p-6 transition-all duration-500 
-           transform hover:-translate-y-2
-           cursor-pointer group relative overflow-hidden
-           border border-gray-300 shadow-sm hover:shadow-md bg-white
-         `}
-          >
-            {/* Header */}
-            <div className="flex justify-between items-start mb-4">
-              <div>{getTypeBadge(item.type)}</div>
-              <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors font-medium bg-white/80 px-2 py-1 rounded">
-                {formatDate(item.date)}
-              </span>
+      {!loading && !error && (
+        <div className="max-w-7xl mx-auto rounded-xl grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredNews.map((item) => (
+            <div
+              key={item.id}
+              className="
+          rounded-lg p-6 transition-all duration-500 
+          transform hover:-translate-y-2
+          cursor-pointer group relative overflow-hidden
+          border border-gray-300 shadow-sm hover:shadow-md bg-white
+        "
+            >
+              {/* Header */}
+              <div className="flex justify-between items-start mb-4">
+                <div>{getTypeBadge(item.type)}</div>
+                <div className="flex items-center gap-2">
+                  {isLoggedIn && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        {/* Edit Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(item);
+                          }}
+                          className="
+      flex items-center justify-center
+      w-8 h-8 rounded-full
+      bg-blue-50 text-blue-600
+      hover:bg-blue-100 hover:text-blue-800
+      shadow-sm hover:shadow-md
+      transition-all duration-300
+    "
+                          title="Edit"
+                        >
+                          <FaEdit className="w-4 h-4" />
+                        </button>
+
+                        {/* Delete Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(item.id);
+                          }}
+                          className="
+      flex items-center justify-center
+      w-8 h-8 rounded-full
+      bg-red-50 text-red-600
+      hover:bg-red-100 hover:text-red-800
+      shadow-sm hover:shadow-md
+      transition-all duration-300
+    "
+                          title="Delete"
+                        >
+                          <FaTrash className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Category */}
+              {item.category && (
+                <div className="mb-3">
+                  <span className="inline-block bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-xs font-semibold border border-gray-300">
+                    {item.category}
+                  </span>
+                </div>
+              )}
+
+              {/* Title */}
+              <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-[#162e5e] transition-colors leading-tight line-clamp-2">
+                {item.title}
+              </h3>
+
+              {/* Description */}
+              <p className="text-gray-700 group-hover:text-gray-800 transition-colors leading-relaxed line-clamp-3 mb-4">
+                {item.description}
+              </p>
+              <div className="flex flex-row items-center justify-center gap-4">
+                {/* Created At */}
+                <div className="mt-4 pt-3 border-t border-gray-200  ">
+                  <span className="text-xs text-[#2457a8] font-semibold bg-[#94b1e0]/10 px-2 py-1 rounded border border-[#2457a8]/40">
+                    📅 Created at: {formatDate(item.date)}
+                  </span>
+                </div>
+
+                {/* Expiry Date */}
+                {item.expiryDate && (
+                  <div className="mt-4 pt-3 border-t border-gray-200">
+                    <p className="text-xs text-[#a11827] font-semibold bg-[#a11827]/10 px-2 py-1 rounded border border-[#a11827]/40">
+                      📅 Valid until: {formatDate(item.expiryDate)}
+                    </p>
+                  </div>
+                )}
+              </div>
+              {/* Hover Read More Indicator */}
+              <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="bg-gradient-to-r from-[#162e5e] to-[#a11827] text-white p-2 rounded-lg transform group-hover:scale-110 transition-transform shadow-md">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
+                  </svg>
+                </div>
+              </div>
             </div>
-
-            {/* Category */}
-            {item.category && (
-              <div className="mb-3">
-                <span className="inline-block bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-xs font-semibold border border-gray-300">
-                  {item.category}
-                </span>
-              </div>
-            )}
-
-            {/* Title */}
-            <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-[#162e5e] transition-colors leading-tight line-clamp-2">
-              {item.title}
-            </h3>
-
-            {/* Description */}
-            <p className="text-gray-700 group-hover:text-gray-800 transition-colors leading-relaxed line-clamp-3 mb-4">
-              {item.description}
-            </p>
-
-            {/* Expiry Date */}
-            {item.expiryDate && (
-              <div className="mt-4 pt-3 border-t border-gray-200">
-                <p className="text-xs text-[#a11827] font-semibold bg-[#a11827]/10 px-2 py-1 rounded border border-[#a11827]/40">
-                  📅 Valid until: {formatDate(item.expiryDate)}
-                </p>
-              </div>
-            )}
-
-            {/* Hover Read More Indicator */}
-            <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="bg-gradient-to-r from-[#162e5e] to-[#a11827] text-white p-2 rounded-lg transform group-hover:scale-110 transition-transform shadow-md">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M14 5l7 7m0 0l-7 7m7-7H3"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* No Results */}
       {filteredNews.length === 0 && (
@@ -396,7 +441,7 @@ const News: React.FC = () => {
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Add News</DialogTitle>
+            <DialogTitle>{editingItem ? "Edit News" : "Add News"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-4">
             <div>
@@ -404,7 +449,9 @@ const News: React.FC = () => {
               <Input
                 id="title"
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
                 required
               />
             </div>
@@ -413,7 +460,9 @@ const News: React.FC = () => {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 required
               />
             </div>
@@ -421,9 +470,9 @@ const News: React.FC = () => {
               <Label htmlFor="type">Type *</Label>
               <Select
                 value={formData.type}
-                onValueChange={(value: "urgent" | "routine" | "british-orienteering") =>
-                  setFormData({ ...formData, type: value })
-                }
+                onValueChange={(
+                  value: "urgent" | "routine" | "british-orienteering"
+                ) => setFormData({ ...formData, type: value })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -431,7 +480,9 @@ const News: React.FC = () => {
                 <SelectContent>
                   <SelectItem value="urgent">Urgent</SelectItem>
                   <SelectItem value="routine">Routine</SelectItem>
-                  <SelectItem value="british-orienteering">British Orienteering</SelectItem>
+                  <SelectItem value="british-orienteering">
+                    British Orienteering
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -441,7 +492,9 @@ const News: React.FC = () => {
                 id="date"
                 type="date"
                 value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, date: e.target.value })
+                }
                 required
               />
             </div>
@@ -451,7 +504,9 @@ const News: React.FC = () => {
                 id="expiryDate"
                 type="date"
                 value={formData.expiryDate}
-                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, expiryDate: e.target.value })
+                }
               />
             </div>
             <div>
@@ -460,7 +515,12 @@ const News: React.FC = () => {
                 id="priority"
                 type="number"
                 value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 1 })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    priority: parseInt(e.target.value) || 1,
+                  })
+                }
                 required
               />
             </div>
@@ -469,7 +529,9 @@ const News: React.FC = () => {
               <Input
                 id="category"
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, category: e.target.value })
+                }
               />
             </div>
             <Button type="submit" className="w-full">

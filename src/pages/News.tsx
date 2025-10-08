@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FaEdit, FaTrash } from "react-icons/fa";
+import { Edit, Trash } from "lucide-react";
 import BAOC_vertical_logo from "@/assets/BAOC_vertical_logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -333,7 +333,7 @@ const News: React.FC = () => {
     "
                           title="Edit"
                         >
-                          <FaEdit className="w-4 h-4" />
+                          <Edit className="w-4 h-4" />
                         </button>
 
                         {/* Delete Button */}
@@ -352,7 +352,7 @@ const News: React.FC = () => {
     "
                           title="Delete"
                         >
-                          <FaTrash className="w-4 h-4" />
+                          <Trash className="w-4 h-4" />
                         </button>
                       </div>
                     </>

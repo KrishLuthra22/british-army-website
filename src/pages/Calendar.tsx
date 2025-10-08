@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import {
   Card,
@@ -21,90 +21,127 @@ import {
   Calendar as CalendarIcon,
   MapPin,
   Download,
+  Plus,
+  Edit,
+  Trash2,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import instructorTeachingImage from "@/assets/Images/DSC_0214-r.jpg";
-import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
-import moment from 'moment';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import { getCollectionData } from "@/Firebase/CloudFirestore/GetData";
+import { addDocument, updateDocument } from "@/Firebase/CloudFirestore/SetData";
+import { deleteDocument } from "@/Firebase/CloudFirestore/DeleteData";
 
 const Calendar = () => {
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [selectedLeague, setSelectedLeague] = useState("all");
   const [selectedEventType, setSelectedEventType] = useState("all");
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    date: "",
+    event: "",
+    location: "",
+    type: "",
+    category: "",
+    league: "",
+    raceSignUp: "",
+    documents: "",
+  });
 
-  // Sample event data
-  const events = [
-    {
-      date: "2024-10-15",
-      event: "AOA Southern League Event 1",
-      location: "Aldershot Training Area",
-      type: "Competition",
-      category: "Southern League",
-      league: "South",
-      raceSignUp: "https://racesignup.co.uk/event123",
-      documents: "Event Info PDF",
-    },
-    {
-      date: "2024-10-22",
-      event: "Basic Orienteering Skills Course",
-      location: "Longmoor Camp, Surrey",
-      type: "Training",
-      category: "Skills Course",
-      league: "South",
-      raceSignUp: "https://racesignup.co.uk/event125",
-      documents: "Course Details PDF",
-    },
-    {
-      date: "2024-11-05",
-      event: "AOA Championships",
-      location: "Catterick Training Area",
-      type: "Championship",
-      category: "National Championship",
-      league: "North",
-      raceSignUp: "https://racesignup.co.uk/event124",
-      documents: "Championship Info PDF",
-    },
-    {
-      date: "2024-11-12",
-      event: "Inter-Services Competition",
-      location: "Brecon Beacons",
-      type: "Competition",
-      category: "Inter-Services",
-      league: "Central",
-      raceSignUp: "https://racesignup.co.uk/event126",
-      documents: "Selection Criteria PDF",
-    },
-    {
-      date: "2024-11-19",
-      event: "Intermediate Orienteering Skills",
-      location: "Longmoor Camp, Surrey",
-      type: "Training",
-      category: "Skills Course",
-      league: "South",
-      raceSignUp: "https://racesignup.co.uk/event127",
-      documents: "Course Syllabus PDF",
-    },
-    {
-      date: "2024-12-01",
-      event: "Scottish League Event 1",
-      location: "Glenmore Forest",
-      type: "Competition",
-      category: "Scottish League",
-      league: "Scotland",
-      raceSignUp: "https://racesignup.co.uk/event128",
-      documents: "Event Info PDF",
-    },
-    {
-      date: "2024-12-10",
-      event: "NI Championships",
-      location: "Belfast Hills",
-      type: "Championship",
-      category: "Regional Championship",
-      league: "NI",
-      raceSignUp: "https://racesignup.co.uk/event129",
-      documents: "Championship Info PDF",
-    },
-  ];
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const data = await getCollectionData("events");
+      setEvents(data);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddEvent = () => {
+    setEditingEvent(null);
+    setFormData({
+      date: "",
+      event: "",
+      location: "",
+      type: "",
+      category: "",
+      league: "",
+      raceSignUp: "",
+      documents: "",
+    });
+    setModalOpen(true);
+  };
+
+  const handleEditEvent = (event) => {
+    setEditingEvent(event);
+    setFormData({
+      date: event.date,
+      event: event.event,
+      location: event.location,
+      type: event.type,
+      category: event.category,
+      league: event.league,
+      raceSignUp: event.raceSignUp,
+      documents: event.documents,
+    });
+    setModalOpen(true);
+  };
+
+  const handleDeleteEvent = async (id) => {
+    if (window.confirm("Are you sure you want to delete this event?")) {
+      try {
+        await deleteDocument("events", id);
+        fetchEvents();
+      } catch (error) {
+        console.error("Error deleting event:", error);
+      }
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingEvent) {
+        await updateDocument("events", editingEvent.id, formData);
+      } else {
+        await addDocument("events", formData);
+      }
+      setModalOpen(false);
+      fetchEvents();
+    } catch (error) {
+      console.error("Error saving event:", error);
+    }
+  };
 
   const localizer = momentLocalizer(moment);
 
@@ -115,7 +152,7 @@ const Calendar = () => {
     resource: event,
   }));
 
-  const eventDates = new Set(events.map(event => event.date));
+  const eventDates = new Set(events.map((event) => event.date));
 
   const filterOptions = [
     { value: "all", label: "All Events" },
@@ -184,7 +221,9 @@ const Calendar = () => {
     { key: "event", header: "Event", className: "min-w-[200px]" },
     { key: "location", header: "Location" },
     { key: "type", header: "Type" },
+    { key: "league", header: "League" },
     { key: "raceSignUp", header: "Registration" },
+    { key: "actions", header: "Actions", className: "w-[120px]" },
     // { key: "documents", header: "Documents" }
   ];
 
@@ -219,6 +258,7 @@ const Calendar = () => {
         {event.type}
       </span>
     ),
+    league: event.league,
     raceSignUp: event.raceSignUp.startsWith("http") ? (
       <Button variant="outline" size="sm" asChild>
         <a href={event.raceSignUp} target="_blank" rel="noopener noreferrer">
@@ -228,6 +268,24 @@ const Calendar = () => {
       </Button>
     ) : (
       <span className="text-sm text-muted-foreground">{event.raceSignUp}</span>
+    ),
+    actions: (
+      <div className="flex items-center space-x-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleEditEvent(event)}
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleDeleteEvent(event.id)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
     ),
     // documents: (
     //   <Button variant="ghost" size="sm">
@@ -422,6 +480,17 @@ const Calendar = () => {
                 </SelectContent>
               </Select>
 
+              {/* Add Event Button */}
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleAddEvent}
+                className="flex items-center gap-1"
+              >
+                <Plus className="h-4 w-4" />
+                Add Event
+              </Button>
+
               {/* Download Button */}
               <Button
                 variant="outline"
@@ -439,31 +508,182 @@ const Calendar = () => {
         {/* Events Table */}
         <DataTable columns={columns} data={tableData} />
 
-        {/* MUI Calendar Component */}
-        <Card className="mt-8 shadow-card-custom">
-          <CardHeader>
-            <CardTitle className="text-primary">Calendar View</CardTitle>
-            <CardDescription>
-              Browse events visually by date using the calendar below.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <BigCalendar
-              localizer={localizer}
-              events={calendarEvents}
-              startAccessor="start"
-              endAccessor="end"
-              style={{ height: 500 }}
-              dayPropGetter={(date) => {
-                const dateStr = date.toISOString().split('T')[0];
-                if (eventDates.has(dateStr)) {
-                  return { style: { backgroundColor: '#e0f7fa', border: '1px solid #00bcd4' } };
-                }
-                return {};
-              }}
-            />
-          </CardContent>
-        </Card>
+        {/* Add/Edit Event Modal */}
+        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+          <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-gradient-to-br from-white/90 to-gray-50/70 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-2xl">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#162e5e] to-[#a11827] px-6 py-4">
+              <DialogHeader>
+                <DialogTitle className="text-white text-lg font-semibold">
+                  {editingEvent ? "Edit Event" : "Add New Event"}
+                </DialogTitle>
+                <DialogDescription className="text-white/80 text-sm">
+                  {editingEvent
+                    ? "Update the details below to modify this event."
+                    : "Provide event details to add it to the schedule."}
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Date Field */}
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="date" className="font-medium text-gray-700">
+                  Date
+                </Label>
+                <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal border-gray-300 hover:border-blue-500 transition",
+                        !formData.date && "text-gray-500"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                      {formData.date ? (
+                        format(new Date(formData.date), "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <ShadcnCalendar
+                      mode="single"
+                      selected={
+                        formData.date ? new Date(formData.date) : undefined
+                      }
+                      onSelect={(date) => {
+                        setFormData({
+                          ...formData,
+                          date: date ? date.toISOString().split("T")[0] : "",
+                        });
+                        setDateOpen(false);
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Text Inputs */}
+              {[
+                {
+                  id: "event",
+                  label: "Event",
+                  placeholder: "Enter event name",
+                  required: true,
+                },
+                {
+                  id: "location",
+                  label: "Location",
+                  placeholder: "Enter event location",
+                  required: true,
+                },
+                { id: "category", label: "Category", placeholder: "Optional" },
+                {
+                  id: "raceSignUp",
+                  label: "Race Sign Up",
+                  placeholder: "Optional",
+                },
+                {
+                  id: "documents",
+                  label: "Documents",
+                  placeholder: "Link or document name",
+                },
+              ].map((field) => (
+                <div key={field.id} className="flex flex-col gap-1">
+                  <Label
+                    htmlFor={field.id}
+                    className="font-medium text-gray-700"
+                  >
+                    {field.label}
+                  </Label>
+                  <Input
+                    id={field.id}
+                    value={formData[field.id]}
+                    onChange={(e) =>
+                      setFormData({ ...formData, [field.id]: e.target.value })
+                    }
+                    className="border-gray-300 focus:border-blue-600 focus:ring-blue-500 transition"
+                    placeholder={field.placeholder}
+                    required={field.required}
+                  />
+                </div>
+              ))}
+
+              {/* Type */}
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="type" className="font-medium text-gray-700">
+                  Type
+                </Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, type: value })
+                  }
+                >
+                  <SelectTrigger className="border-gray-300 focus:border-blue-600 transition">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Competition">Competition</SelectItem>
+                    <SelectItem value="Training">Training</SelectItem>
+                    <SelectItem value="Championship">Championship</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* League */}
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="league" className="font-medium text-gray-700">
+                  League
+                </Label>
+                <Select
+                  value={formData.league}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, league: value })
+                  }
+                >
+                  <SelectTrigger className="border-gray-300 focus:border-blue-600 transition">
+                    <SelectValue placeholder="Select league" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Central">Central</SelectItem>
+                    <SelectItem value="NI">NI</SelectItem>
+                    <SelectItem value="North">North</SelectItem>
+                    <SelectItem value="Scotland">Scotland</SelectItem>
+                    <SelectItem value="South">South</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Footer */}
+              <DialogFooter className="pt-6 border-t border-gray-200 mt-6">
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-[#162e5e] to-[#a11827] hover:opacity-90 text-white font-semibold py-2 rounded-lg transition-all duration-300"
+                >
+                  {editingEvent ? "Update Event" : "Add Event"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <div className="mt-8 flex justify-center">
+          <iframe
+            src="https://calendar.google.com/calendar/embed?src=ccb3a2125b5dbd05a8d17a6587700b31aa2d8bfe87bc70f12aaf16f5f1315869%40group.calendar.google.com&ctz=America%2FNew_York"
+            style={{ border: 0 }}
+            width="800"
+            height="600"
+            frameBorder="0"
+            scrolling="no"
+            title="Google Calendar"
+          ></iframe>
+        </div>
       </div>
     </div>
   );

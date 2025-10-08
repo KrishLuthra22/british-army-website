@@ -20,12 +20,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import {
-  getCollectionData,
-  addDocument,
-  updateDocument,
-  deleteDocument,
-} from "@/Firebase";
+import { getCollectionData } from "@/Firebase/CloudFirestore/GetData";
+import { addDocument, updateDocument } from "@/Firebase/CloudFirestore/SetData";
+import { deleteDocument } from "@/Firebase/CloudFirestore/DeleteData";
 
 interface NewsItem {
   id: string;

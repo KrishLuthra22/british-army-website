@@ -199,25 +199,25 @@ const News: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#a11827]/10 via-[#162e5e]/10 to-[#1f7a3a]/10 py-12 px-4">
+    <div className="min-h-screen  py-12 px-4">
       {/* Section Header */}
       <div className="text-center mb-12 max-w-4xl mx-auto">
         <div className="inline-flex items-center justify-center mb-4">
           <div className="w-12 h-12 bg-gradient-to-r from-[#a11827] via-[#162e5e] to-[#1f7a3a] rounded-lg mr-4 shadow-lg">
             <img className="rounded-lg" src={BAOC_vertical_logo} alt="" />
           </div>
-          <h2 className="text-4xl font-bold text-gray-900 bg-gradient-to-r from-[#a11827] via-[#162e5e] to-[#1f7a3a] bg-clip-text text-transparent">
+          <h2 className="text-4xl font-bold text-gray-900  bg-clip-text text-black">
             Army Orienteering News
           </h2>
         </div>
-        <p className="text-gray-700 text-lg max-w-2xl mx-auto leading-relaxed">
+        <p className="text-gray-700 text-md max-w-2xl mx-auto leading-relaxed">
           Latest updates, event changes, and important announcements for the
           orienteering community
         </p>
         <div className="mt-6">
           <button
             onClick={handleAddNewsClick}
-            className="bg-gradient-to-r from-[#162e5e] to-[#a11827] text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 transform hover:scale-105"
+            className="bg-[#162e5e] text-white px-6 py-2 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 transform hover:scale-105"
           >
             Add News
           </button>

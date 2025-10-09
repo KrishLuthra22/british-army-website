@@ -508,6 +508,24 @@ const Calendar = () => {
         {/* Events Table */}
         <DataTable columns={columns} data={tableData} />
 
+        {/* Calendar View */}
+        <Card className="mt-8 shadow-card-custom">
+          <CardHeader>
+            <CardTitle>Calendar View</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BigCalendar
+              localizer={localizer}
+              events={calendarEvents}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: 500 }}
+              views={["month", "week", "day"]}
+              defaultView="month"
+            />
+          </CardContent>
+        </Card>
+
         {/* Add/Edit Event Modal */}
         <Dialog open={modalOpen} onOpenChange={setModalOpen}>
           <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-gradient-to-br from-white/90 to-gray-50/70 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-2xl">
@@ -672,18 +690,6 @@ const Calendar = () => {
             </form>
           </DialogContent>
         </Dialog>
-
-        <div className="mt-8 flex justify-center">
-          <iframe
-            src="https://calendar.google.com/calendar/embed?src=ccb3a2125b5dbd05a8d17a6587700b31aa2d8bfe87bc70f12aaf16f5f1315869%40group.calendar.google.com&ctz=America%2FNew_York"
-            style={{ border: 0 }}
-            width="800"
-            height="600"
-            frameBorder="0"
-            scrolling="no"
-            title="Google Calendar"
-          ></iframe>
-        </div>
       </div>
     </div>
   );
